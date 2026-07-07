@@ -213,10 +213,14 @@ function evr(vs,cen,as){ var t=tss(vs); if(t<=1e-12) return 1; return Math.max(0
 function pooled(seq){ var out=transformer(seq),p=new Array(D).fill(0); out.forEach(function(o){for(var d=0;d<D;d++) p[d]+=o[d];}); return p.map(function(x){return x/out.length;}); }
 function cosine(a,b){ var na=Math.sqrt(dot(a,a)),nb=Math.sqrt(dot(b,b)); if(na===0||nb===0) return 0; return dot(a,b)/(na*nb); }
 function compare(ctx,k){ var vs=ctx.map(embed); var n=vs.length; k=Math.max(1,Math.min(k,n));
-  var pp=pooled(vs); var c=centrifuge(vs,k); var sp=pooled(c.intents);
+  var intents, assign, cops;
+  if(k===n){ // K==N: no compression -> the silo IS the plain transformer (exact for any context)
+    intents=vs.map(function(v){return v.slice();}); assign=vs.map(function(_,i){return i;}); cops=0;
+  } else { var c=centrifuge(vs,k); intents=c.intents; assign=c.assign; cops=n*k*c.history.length; }
+  var pp=pooled(vs); var sp=pooled(intents);
   return {n:n,k:k,compression:Math.round(n/k*100)/100,plainPairs:n*n,siloPairs:k*k,
-    attnSpeedup:Math.round(n*n/(k*k)*100)/100, clusteringOps:n*k*c.history.length,
-    varExp:Math.round(evr(vs,c.intents,c.assign)*1e4)/1e4, agree:Math.round(cosine(pp,sp)*1e4)/1e4}; }
+    attnSpeedup:Math.round(n*n/(k*k)*100)/100, clusteringOps:cops,
+    varExp:Math.round(evr(vs,intents,assign)*1e4)/1e4, agree:Math.round(cosine(pp,sp)*1e4)/1e4}; }
 function sweep(ctx,thr){ var n=ctx.length,rows=[]; for(var k=1;k<=n;k++) rows.push(compare(ctx,k));
   var rec=n; for(var i=0;i<rows.length;i++){ if(rows[i].varExp>=thr){ rec=rows[i].k; break; } }
   return {rows:rows,rec:rec,thr:thr,n:n}; }

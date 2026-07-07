@@ -31,15 +31,23 @@ check(all(0.0 <= e <= 1.0 for e in evr), "explained variance stays in [0,1]")
 check(evr[0] == 0.0, "EVR(K=1) = 0 (one centroid = the global mean, no variance explained)")
 check(abs(evr[-1] - 1.0) < 1e-9, "EVR(K=N) = 1 for distinct tokens (each its own intent)")
 
-# 2. Monotonic non-decreasing in K (the elbow curve only rises).
+# 2. Non-decreasing in K (the elbow curve only rises). NOTE: this is an EMPIRICAL
+#    invariant of this deterministic seeding, not a theorem -- Lloyd's from a fixed
+#    seed does not guarantee EVR is monotonic in K in general.
 check(all(evr[i] <= evr[i + 1] + 1e-9 for i in range(len(evr) - 1)),
-      f"explained variance is monotonically non-decreasing in K ({evr})")
+      f"explained variance is non-decreasing in K here ({evr})")
 
-# 3. The honest baseline: at K = N the silo IS the plain transformer.
+# 3. The honest baseline: at K = N the silo IS the plain transformer -- and this
+#    now holds by construction (K==N short-circuits to the raw embeddings), so it
+#    is exact for DUPLICATE-token contexts too, not just distinct ones.
 cN = compare(DISTINCT, N)
 check(abs(cN["output_agreement"] - 1.0) < 1e-9,
       "at K=N the silo output equals the plain transformer (agreement 1.0)")
 check(cN["attn_speedup"] == 1.0, "at K=N there is no attention speedup (1.0x)")
+DUP = ["cat", "cat", "sky", "sky", "sky", "mat"]              # duplicate tokens
+cDup = compare(DUP, len(DUP))
+check(abs(cDup["output_agreement"] - 1.0) < 1e-9 and abs(cDup["variance_explained"] - 1.0) < 1e-9,
+      "at K=N the silo == plain EVEN WITH DUPLICATE TOKENS (agreement 1.0, EVR 1.0)")
 
 # 4. The rate axis: attention pairs are N^2 (plain) vs K^2 (silo); speedup = N^2/K^2.
 c3 = compare(DISTINCT, 3)

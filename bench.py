@@ -75,9 +75,16 @@ def plain(context):
 def silo(context, k):
     vs = [embed(t) for t in context]
     k = max(1, min(k, len(vs)))
-    intents, assign, hist = centrifuge(vs, k)
+    if k == len(vs):
+        # K == N: one intent per token -> no compression -> the silo IS the plain
+        # transformer. Use the raw embeddings directly (no clustering), so this
+        # baseline is exact for ANY context, duplicate tokens included.
+        intents, assign, cops = [list(v) for v in vs], list(range(len(vs))), 0
+    else:
+        intents, assign, hist = centrifuge(vs, k)
+        cops = len(vs) * k * len(hist)
     return {"k": k, "pairs": attention_pairs(k),
-            "clustering_ops": len(vs) * k * len(hist),   # the one-time overhead, disclosed
+            "clustering_ops": cops,                       # the one-time overhead, disclosed
             "evr": explained_variance(vs, intents, assign),
             "pooled": _pooled(intents), "assign": assign}
 
@@ -110,8 +117,8 @@ def verdict(context, threshold=0.9):
     r = next(row for row in sw["rows"] if row["k"] == rec)
     return (f"On this context (N={sw['n']}), keeping {int(threshold*100)}% of the "
             f"variance needs K={rec} intents: a {r['attn_speedup']}x cut in attention "
-            f"pairs ({r['plain_pairs']}->{r['silo_pairs']}) for {r['variance_lost']*100:.1f}% "
-            f"variance lost and output agreement {r['output_agreement']}. A trade-off, not a "
+            f"pairs ({r['plain_pairs']}->{r['silo_pairs']}) for {r['variance_explained']*100:.1f}% "
+            f"variance kept and output agreement {r['output_agreement']}. A trade-off, not a "
             f"free win -- whether it is worth it depends on your data.")
 
 
