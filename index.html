@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRANSFORMER SILO v2 · the honest head-to-head · ROOT0</title>
+<meta name="description" content="transformer-silo v2 by David Lee Wise / ROOT0: the honest head-to-head. The silo (cluster the context to K intents, then transform) vs the plain transformer (attend over all N tokens). These are untrained toy models, so instead of a fake accuracy score it uses the industry-standard tests for compression: the elbow method (variance explained by K) and rate-vs-distortion (attention pairs N² → K² saved, against variance and output fidelity lost). Plain = the K=N end, agreement 1.0 by construction. A trade-off, not a winner.">
+<meta name="theme-color" content="#1f8f66">
+<meta property="og:type" content="website">
+<meta property="og:title" content="TRANSFORMER SILO v2 · the honest head-to-head">
+<meta property="og:description" content="Silo vs plain transformer, measured the honest way: the elbow method (variance explained vs K) and rate-distortion (attention N²→K² saved vs fidelity lost). Untrained toys, so no fake accuracy — just the trade-off curve, with the elbow marked.">
+<meta property="og:url" content="https://davidwise01.github.io/transformer-silo-v2/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TRANSFORMER SILO v2 · the honest head-to-head">
+<meta name="twitter:description" content="Silo vs plain transformer via the elbow method + rate-distortion. Untrained toys, no fake accuracy — the trade-off curve, elbow marked. Verify live.">
+<link rel="canonical" href="https://davidwise01.github.io/transformer-silo-v2/">
+<style>
+:root{
+  --paper:#e8eeea; --pan:#f3f7f4; --pan2:#e7efe9;
+  --ink:#1c2620; --ink2:#3d4f45; --dim:#71857a;
+  --emerald:#1f8f66; --emerald2:#146b4b;
+  --slate:#5b6b78; --slate2:#3c4a55;
+  --gold:#c99128; --gold2:#9a6d18;
+  --signal:#bf4638; --signal2:#8f3025;
+  --line:#cddcd3; --line2:#dbe8e0;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Code","Consolas",monospace;
+  --shadow:0 1px 0 #fffc, 0 16px 34px -24px #1c2a2044;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased;
+  background-image:repeating-linear-gradient(0deg,#0000 0 33px,#1f8f660c 33px 34px)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+a{color:var(--emerald2);text-underline-offset:2px}
+h1,h2,h3{line-height:1.13;font-weight:600;letter-spacing:.2px}
+.mono{font-family:var(--mono)}
+
+header.top{padding:38px 0 12px}
+.sealrow{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.seal{width:112px;height:112px;flex:none;filter:drop-shadow(0 8px 18px -10px #1c2a2055)}
+.kick{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--emerald2)}
+h1.mh{font-size:clamp(29px,5.6vw,50px);margin:.08em 0 .12em;letter-spacing:.6px}
+.lede{font-size:18px;color:var(--ink2);max-width:66ch;margin:.35em 0 0}
+.lede b{color:var(--ink);font-weight:600}
+
+section{padding:26px 0 4px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold2)}
+h2.sec{font-size:clamp(22px,3.6vw,29px);margin:.14em 0 .18em}
+.sub{color:var(--ink2);max-width:72ch;margin:0 0 16px}
+
+.rig{border:1px solid var(--line);border-radius:15px;background:var(--pan);box-shadow:var(--shadow);overflow:hidden}
+.rtop{display:flex;align-items:center;gap:10px;padding:11px 16px;background:linear-gradient(180deg,#fff8,#fff0);border-bottom:1px solid var(--line2);font-family:var(--mono);font-size:12px;color:var(--ink2);flex-wrap:wrap}
+.rtop b{color:var(--emerald2)}
+.rbody{padding:16px 17px}
+.ctxrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:14px}
+.ctxrow label{font-family:var(--mono);font-size:11px;color:var(--dim);display:block;margin-bottom:3px}
+.ctxrow input[type=text]{width:100%;font-family:var(--mono);font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.ctxrow .thr{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.ctxrow .thr input{accent-color:var(--emerald);width:80px;vertical-align:middle}
+@media(max-width:600px){.ctxrow{grid-template-columns:1fr}}
+
+.chart{border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px 8px 4px;overflow-x:auto}
+.chart svg{width:100%;min-width:520px;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 2px 0;font-family:var(--mono);font-size:11px;color:var(--ink2)}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.legend .sw{width:18px;height:3px;border-radius:2px} .legend .dot{width:9px;height:9px;border-radius:50%}
+
+.verdict{font-family:var(--mono);font-size:13px;line-height:1.55;border-radius:9px;padding:12px 14px;margin:14px 0 4px;border:1px solid color-mix(in srgb,var(--emerald) 30%,#fff);background:color-mix(in srgb,var(--emerald) 8%,#fff);color:var(--emerald2)}
+.verdict b{color:var(--ink)}
+
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:14px}
+.tbl th{text-align:right;padding:6px 9px;color:var(--dim);font-weight:600;border-bottom:1px solid var(--line);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{text-align:right;padding:6px 9px;border-bottom:1px dashed var(--line);color:var(--ink2)}
+.tbl td b{color:var(--ink)}
+.tbl tr.rec{background:color-mix(in srgb,var(--gold) 12%,#fff)} .tbl tr.rec td{color:var(--ink)}
+.tbl tr.plain td{color:var(--slate2)} .tbl tr.plain{background:color-mix(in srgb,var(--slate) 7%,#fff)}
+.tag{display:inline-block;border-radius:20px;padding:0 7px;font-size:10px;font-weight:700}
+.tag.rec{background:var(--gold);color:#2a2412} .tag.plain{background:var(--slate);color:#fff}
+.snote{padding:11px 17px;font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--pan2);line-height:1.6;border-top:1px solid var(--line2)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--pan);padding:16px 18px;box-shadow:var(--shadow)}
+.card h3{font-size:14px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--emerald2);margin:0 0 8px}
+.card.sig h3{color:var(--signal2)}
+.card p{margin:.35em 0;font-size:14.5px;color:var(--ink2)}
+.card code{font-family:var(--mono);font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.src{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:14px;line-height:1.75}
+.backbar{margin:28px 0 0;padding:15px 0;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+.backbar a{text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;background:var(--pan)}
+.backbar a:hover{border-color:var(--emerald)}
+footer{padding:26px 0 60px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--dim)}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <div class="sealrow">
+    <svg class="seal" viewBox="0 0 120 120" role="img" aria-label="Silo v2 head-to-head insignia">
+      <circle cx="60" cy="60" r="56" fill="none" stroke="#1f8f66" stroke-width="2.4"/>
+      <!-- an elbow curve -->
+      <path d="M28 82 C 44 82, 52 50, 92 46" fill="none" stroke="#1f8f66" stroke-width="2"/>
+      <!-- rising attention cost -->
+      <path d="M28 84 L92 34" fill="none" stroke="#5b6b78" stroke-width="1.4" stroke-dasharray="3 3"/>
+      <circle cx="55" cy="57" r="3.5" fill="#c99128"/>
+      <text x="55" y="50" text-anchor="middle" font-family="ui-monospace,monospace" font-size="6" fill="#9a6d18">elbow</text>
+      <text x="60" y="108" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7" fill="#3d4f45" letter-spacing="1.2">v2 · HEAD-TO-HEAD</text>
+    </svg>
+    <div>
+      <div class="kick">the honest head-to-head · v2</div>
+      <h1 class="mh">SILO vs PLAIN</h1>
+      <p class="lede">v1 asked it; v2 measures it. The <b>silo</b> (cluster the context to K intents, then transform) against the <b>plain transformer</b> (attend over all N tokens). These are <b>untrained toys</b>, so there's no honest "accuracy" to score — instead, the industry-standard tests for compression: the <b>elbow method</b> (variance explained by K) and <b>rate vs distortion</b> (attention <span class="mono">N²→K²</span> saved, against fidelity lost). A trade-off, not a winner.</p>
+    </div>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<section id="rig">
+  <div class="eyebrow">The comparison</div>
+  <h2 class="sec">Sweep K · read the elbow</h2>
+  <p class="sub">The <b>plain transformer is the K = N</b> end (no clustering, 100% variance, output agreement 1.0 — a self-test anchor). Everything at K &lt; N is the silo trading fidelity for compute. Type a context; the sweep, the elbow, and the verdict update live and deterministically.</p>
+  <div class="rig">
+    <div class="rtop">◎ <b>sweep + verdict</b> — the elbow method + rate–distortion, computed client-side (no network)</div>
+    <div class="rbody">
+      <div class="ctxrow">
+        <div><label>the user context (N tokens)</label><input type="text" id="ctx" value="cat cat sat sky sky sky run mat mat on"></div>
+        <div class="thr">keep ≥<br><input type="range" id="thr" min="50" max="99" value="90"> <span id="thrVal">90</span>% variance</div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--emerald)"></span> variance explained (fidelity)</span>
+        <span class="lg"><span class="sw" style="background:var(--slate);border-top:2px dashed var(--slate)"></span> attention cost K²/N² (rate)</span>
+        <span class="lg"><span class="dot" style="background:var(--gold)"></span> the elbow (recommended K)</span>
+      </div>
+      <div class="verdict" id="verdict"></div>
+      <div style="overflow-x:auto"><table class="tbl" id="tbl"></table></div>
+    </div>
+    <div class="snote">Variance explained = <span class="mono">1 − WCSS/TSS</span> (the elbow-method / k-means metric). Rate = self-attention pairs, <span class="mono">N²</span> (plain) vs <span class="mono">K²</span> (silo); the silo also pays a one-time <span class="mono">N·K·spins</span> clustering pass, disclosed in the table. Output agreement = cosine between the silo's pooled output and the plain transformer's. At K=N the silo <b>is</b> the plain model (agreement 1.0). Untrained toys — no accuracy claim; just the trade-off, measured right.</div>
+  </div>
+</section>
+
+<section id="honesty">
+  <div class="eyebrow">The colophon</div>
+  <h2 class="sec">What this settles — and what it doesn't</h2>
+  <div class="two">
+    <div class="card">
+      <h3>What it settles</h3>
+      <p>The silo's cost/benefit is a genuine <b>rate–distortion trade-off</b>: it buys a <code>K²/N²</code> attention reduction for <code>(1 − variance explained)</code> lost. The elbow shows where the curve turns. <code>python selftest.py</code> proves the metrics and the anchors (K=N ≡ plain, agreement 1.0) with no network (14 checks).</p>
+    </div>
+    <div class="card sig">
+      <h3>What it doesn't</h3>
+      <p>It does <b>not</b> claim the silo is <b>better</b> — the self-test literally forbids the verdict from saying "beats" or "wins." Whether the compression helps a <i>trained</i> model on <i>real</i> data is a different, empirical question. That would be <b>v3</b>: real training, a real benchmark, honestly reported.</p>
+    </div>
+  </div>
+  <div class="src">
+    SOURCE · <a href="https://github.com/DavidWise01/transformer-silo-v2">github.com/DavidWise01/transformer-silo-v2</a> · <code>bench.py</code> (explained_variance · attention_pairs · compare · sweep · verdict) · <code>silo.py</code> (v1 engine, vendored) · <code>selftest.py</code> (metrics + honest framing). Head-to-head of <a href="https://davidwise01.github.io/transformer-silo/">transformer-silo v1</a>.
+  </div>
+  <div class="backbar">
+    <a href="https://github.com/DavidWise01/transformer-silo-v2">⧉ the code (GitHub)</a>
+    <a href="https://davidwise01.github.io/transformer-silo/">⌗ silo v1</a>
+    <a href="https://davidwise01.github.io/the-forward-pass/">\o/ the forward pass</a>
+    <a href="https://davidwise01.github.io/ud0/">⌂ ud0 · the atlas</a>
+  </div>
+</section>
+
+<footer>
+  TRANSFORMER SILO v2 · the honest head-to-head · David Lee Wise / ROOT0 / TriPod LLC · CC-BY-ND-4.0<br>
+  the elbow method · rate vs distortion · a trade-off, measured — never a fake win
+</footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+// ============ vendored v1 silo engine (matches silo.py) ============
+var D=4, VOCAB=["the","cat","sat","on","mat","run","sky","map"];
+function r4(x){ return Math.round(x*1e4)/1e4; }
+function tokSalt(t){ var s=0; for(var i=0;i<t.length;i++) s+=t.charCodeAt(i); return s%11; }
+function embed(t){ var s=tokSalt(t),v=[]; for(var k=0;k<D;k++) v.push(r4(Math.sin((k+1)*1.3+s*0.7))); return v; }
+function dist2(a,b){ var s=0; for(var i=0;i<D;i++){ var d=a[i]-b[i]; s+=d*d; } return s; }
+function add(a,b){ return a.map(function(x,i){return x+b[i];}); }
+function dot(a,b){ var s=0; for(var i=0;i<a.length;i++) s+=a[i]*b[i]; return s; }
+function seedCentroids(vs,k){ var chosen=[vs[0].slice()];
+  while(chosen.length<k){ var bi=0,bd=-1; for(var i=0;i<vs.length;i++){ var dm=Infinity; for(var c=0;c<chosen.length;c++) dm=Math.min(dm,dist2(vs[i],chosen[c])); if(dm>bd){bd=dm;bi=i;} } chosen.push(vs[bi].slice()); } return chosen; }
+function energy(vs,cen,as){ var e=0; for(var i=0;i<vs.length;i++) e+=dist2(vs[i],cen[as[i]]); return e; }
+function nearest(v,cen){ var bj=0,bd=Infinity; for(var j=0;j<cen.length;j++){ var d=dist2(v,cen[j]); if(d<bd){bd=d;bj=j;} } return bj; }
+function centrifuge(vs,k,maxSpins){ maxSpins=maxSpins||25; var cen=seedCentroids(vs,k);
+  var as=vs.map(function(v){return nearest(v,cen);}), hist=[r4(energy(vs,cen,as)*1e2)/1e2];
+  for(var sp=0;sp<maxSpins;sp++){ for(var j=0;j<k;j++){ var mem=[]; for(var i=0;i<vs.length;i++) if(as[i]===j) mem.push(vs[i]);
+      if(mem.length){ cen[j]=[]; for(var d=0;d<D;d++){ var s=0; mem.forEach(function(m){s+=m[d];}); cen[j].push(s/mem.length); } } }
+    var na=vs.map(function(v){return nearest(v,cen);}); hist.push(r4(energy(vs,cen,na)*1e2)/1e2);
+    if(JSON.stringify(na)===JSON.stringify(as)) break; as=na; }
+  return {intents:cen.map(function(c){return c.map(r4);}), assign:as, history:hist}; }
+function grid(rows,cols,salt){ var M=[]; for(var i=0;i<rows;i++){ var r=[]; for(var j=0;j<cols;j++) r.push(r4(Math.sin((i+1)*2.3+(j+1)*1.7+salt*0.9))); M.push(r); } return M; }
+function matvec(M,v){ return M.map(function(row){return dot(row,v);}); }
+function relu(v){ return v.map(function(x){return x>0?x:0;}); }
+function rmsnorm(v){ var ms=0; v.forEach(function(x){ms+=x*x;}); ms/=v.length; var sc=1/Math.sqrt(ms+1e-6); return v.map(function(x){return x*sc;}); }
+function softmax(xs){ var m=Math.max.apply(null,xs),e=xs.map(function(x){return Math.exp(x-m);}),s=e.reduce(function(a,b){return a+b;},0); return e.map(function(x){return x/s;}); }
+function layer(li){ return {Wq:grid(D,D,li*3+1),Wk:grid(D,D,li*3+2),Wv:grid(D,D,li*3+3),Wo:grid(D,D,li*3+4),W1:grid(D*2,D,li*3+5),W2:grid(D,D*2,li*3+6)}; }
+function transformer(seq,layers){ layers=layers||2; var x=seq.map(function(v){return v.slice();}),n=x.length;
+  for(var li=0;li<layers;li++){ var W=layer(li),nx=x.map(rmsnorm);
+    var Q=nx.map(function(t){return matvec(W.Wq,t);}),K=nx.map(function(t){return matvec(W.Wk,t);}),V=nx.map(function(t){return matvec(W.Wv,t);});
+    for(var i=0;i<n;i++){ var sc=[]; for(var j=0;j<n;j++) sc.push(dot(Q[i],K[j])/Math.sqrt(D)); var w=softmax(sc);
+      var ctx=new Array(D).fill(0); for(var j2=0;j2<n;j2++) for(var d=0;d<D;d++) ctx[d]+=w[j2]*V[j2][d]; x[i]=add(x[i],matvec(W.Wo,ctx)); }
+    x=x.map(function(t){ return add(t, matvec(W.W2, relu(matvec(W.W1, rmsnorm(t))))); }); } return x; }
+// ============ bench (matches bench.py) ============
+function meanVec(vs){ var m=new Array(D).fill(0); vs.forEach(function(v){for(var d=0;d<D;d++) m[d]+=v[d];}); return m.map(function(x){return x/vs.length;}); }
+function tss(vs){ var m=meanVec(vs),s=0; vs.forEach(function(v){ s+=dist2(v,m); }); return s; }
+function evr(vs,cen,as){ var t=tss(vs); if(t<=1e-12) return 1; return Math.max(0,Math.min(1, 1 - energy(vs,cen,as)/t)); }
+function pooled(seq){ var out=transformer(seq),p=new Array(D).fill(0); out.forEach(function(o){for(var d=0;d<D;d++) p[d]+=o[d];}); return p.map(function(x){return x/out.length;}); }
+function cosine(a,b){ var na=Math.sqrt(dot(a,a)),nb=Math.sqrt(dot(b,b)); if(na===0||nb===0) return 0; return dot(a,b)/(na*nb); }
+function compare(ctx,k){ var vs=ctx.map(embed); var n=vs.length; k=Math.max(1,Math.min(k,n));
+  var pp=pooled(vs); var c=centrifuge(vs,k); var sp=pooled(c.intents);
+  return {n:n,k:k,compression:Math.round(n/k*100)/100,plainPairs:n*n,siloPairs:k*k,
+    attnSpeedup:Math.round(n*n/(k*k)*100)/100, clusteringOps:n*k*c.history.length,
+    varExp:Math.round(evr(vs,c.intents,c.assign)*1e4)/1e4, agree:Math.round(cosine(pp,sp)*1e4)/1e4}; }
+function sweep(ctx,thr){ var n=ctx.length,rows=[]; for(var k=1;k<=n;k++) rows.push(compare(ctx,k));
+  var rec=n; for(var i=0;i<rows.length;i++){ if(rows[i].varExp>=thr){ rec=rows[i].k; break; } }
+  return {rows:rows,rec:rec,thr:thr,n:n}; }
+
+function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+
+function chart(sw){
+  var W=560,H=200,padL=38,padR=16,padT=14,padB=26, n=sw.n;
+  function x(k){ return padL + (n<=1?0:(k-1)/(n-1))*(W-padL-padR); }
+  function y(f){ return padT + (1-f)*(H-padT-padB); }
+  var varPts=sw.rows.map(function(r){ return x(r.k).toFixed(1)+','+y(r.varExp).toFixed(1); }).join(' ');
+  var costPts=sw.rows.map(function(r){ return x(r.k).toFixed(1)+','+y(r.siloPairs/(n*n)).toFixed(1); }).join(' ');
+  var rec=sw.rows.filter(function(r){return r.k===sw.rec;})[0];
+  var s='<svg viewBox="0 0 '+W+' '+H+'">';
+  // gridlines + y labels (0 / 50 / 100%)
+  [0,0.5,1].forEach(function(f){ s+='<line x1="'+padL+'" y1="'+y(f).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y(f).toFixed(1)+'" stroke="#e7efe9"/>'+
+    '<text x="'+(padL-5)+'" y="'+(y(f)+3).toFixed(1)+'" text-anchor="end" font-family="ui-monospace" font-size="8" fill="#71857a">'+(f*100)+'</text>'; });
+  // elbow marker
+  s+='<line x1="'+x(sw.rec).toFixed(1)+'" y1="'+padT+'" x2="'+x(sw.rec).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#c99128" stroke-width="1.4" stroke-dasharray="3 3"/>';
+  s+='<text x="'+x(sw.rec).toFixed(1)+'" y="'+(padT+9)+'" text-anchor="middle" font-family="ui-monospace" font-size="8.5" font-weight="700" fill="#9a6d18">elbow · K='+sw.rec+'</text>';
+  // cost line (slate dashed) + variance line (emerald)
+  s+='<polyline points="'+costPts+'" fill="none" stroke="#5b6b78" stroke-width="1.6" stroke-dasharray="4 3" opacity=".85"/>';
+  s+='<polyline points="'+varPts+'" fill="none" stroke="#1f8f66" stroke-width="2.2"/>';
+  sw.rows.forEach(function(r){ s+='<circle cx="'+x(r.k).toFixed(1)+'" cy="'+y(r.varExp).toFixed(1)+'" r="'+(r.k===sw.rec?4:2.6)+'" fill="'+(r.k===sw.rec?'#c99128':'#1f8f66')+'"/>'; });
+  // x labels
+  sw.rows.forEach(function(r){ s+='<text x="'+x(r.k).toFixed(1)+'" y="'+(H-padB+14)+'" text-anchor="middle" font-family="ui-monospace" font-size="8" fill="'+(r.k===sw.n?'#5b6b78':'#71857a')+'">'+r.k+(r.k===sw.n?' (plain)':'')+'</text>'; });
+  s+='<text x="'+((padL+W-padR)/2)+'" y="'+(H-2)+'" text-anchor="middle" font-family="ui-monospace" font-size="8.5" fill="#71857a">K intents  ·  left→right: more clusters, more fidelity, more compute</text>';
+  s+='</svg>';
+  return s;
+}
+function render(){
+  var ctx=document.getElementById("ctx").value.trim().split(/\s+/).filter(Boolean);
+  if(ctx.length<2) ctx=["cat","sky"];
+  var thr=(+document.getElementById("thr").value)/100;
+  document.getElementById("thrVal").textContent=Math.round(thr*100);
+  var sw=sweep(ctx,thr);
+  document.getElementById("chart").innerHTML=chart(sw);
+  var rec=sw.rows.filter(function(r){return r.k===sw.rec;})[0];
+  document.getElementById("verdict").innerHTML=
+    'On this context (<b>N='+sw.n+'</b>), keeping <b>'+Math.round(thr*100)+'%</b> of the variance needs <b>K='+sw.rec+'</b> intents: a <b>'+rec.attnSpeedup+'×</b> cut in attention pairs ('+rec.plainPairs+'→'+rec.siloPairs+') for <b>'+(rec.varExp*100).toFixed(1)+'%</b> variance kept and output agreement <b>'+rec.agree+'</b>. A trade-off, not a free win — whether it is worth it depends on your data.';
+  var rows=sw.rows.map(function(r){
+    var cls=r.k===sw.rec?'rec':(r.k===sw.n?'plain':'');
+    var tagc=r.k===sw.rec?'<span class="tag rec">elbow</span>':(r.k===sw.n?'<span class="tag plain">plain</span>':'');
+    return '<tr class="'+cls+'"><td>'+r.k+' '+tagc+'</td><td>'+r.compression+'×</td><td><b>'+r.attnSpeedup+'×</b></td><td>'+(r.varExp*100).toFixed(1)+'%</td><td>'+r.agree.toFixed(3)+'</td><td>'+r.clusteringOps+'</td></tr>';
+  }).join("");
+  document.getElementById("tbl").innerHTML='<tr><th>K</th><th>compression</th><th>attention cut</th><th>variance kept</th><th>output agreement</th><th>cluster ops</th></tr>'+rows;
+}
+document.getElementById("ctx").addEventListener("input", render);
+document.getElementById("thr").addEventListener("input", render);
+render();
+})();
+</script>
+</body>
+</html>
