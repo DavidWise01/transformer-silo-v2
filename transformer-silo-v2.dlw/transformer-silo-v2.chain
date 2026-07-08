@@ -4,6 +4,6 @@ slug  : transformer-silo-v2
 seal  : edf6b381ef01082007deb861bd81a4b0fe06ccdcd48c35000fc6f4776d59477c
 prev  : 038bdf6dac5011c5c133f893af2879b27c0c618711f11d37baf8f42d96c4e871
 link  : 4b66cd88bc0ea6c4562cc5a92cff7eab1df53b9823718b28857224535253d47d
-head  : 3447d3a0533aaf1e29a8bdc67a9774884fb3ae9dbc8a17064b7a008ca3c4ec90
+head  : 13f9ace173ef2e60af38912ba329b4afcb5a38b84a0e4495e8d30327f8c99cc2
 
 — the tether: link = sha256(index|slug|seal|prev). the chain head commits to the whole corpus.
